@@ -1,101 +1,107 @@
-Initialize a new project with Claude Code configuration files, settings, and MCP workflow integration.
+Initialize project with Claude Code config and MCP workflow integration.
 
 ## Steps
 
-### 1. Create Project Structure
-Create the `.claude` directory and session files:
+1. Create structure:
+   ```bash
+   mkdir -p .claude
+   touch .claude/session-context.md .claude/session.md .claude/todo.md
+   ```
 
-```bash
-mkdir -p .claude
-touch .claude/session-context.md
-touch .claude/session.md
-touch .claude/todo.md
-```
+2. Run `/init` to generate base CLAUDE.md
 
-### 2. Run Claude Initialization
-Execute the `/init` command to generate the base `CLAUDE.md` file.
-
-### 3. Add Project Configuration
-After `CLAUDE.md` is created, append the following sections to the file:
+3. Append to CLAUDE.md:
 
 ```markdown
 ## External Resources
+
 - Shared assets: [placeholder]
 - Design files: [placeholder]
 
 ## Skill Location
-When there is a specific reference to a Claude Skill, or the context indicates that a Claude Skill should be invoked, note that all skills used in this project are personal skills and located at: /Users/john/.claude/skills
+
+Personal skills at: /Users/john/.claude/skills
 
 ## MCP Server Workflow (Docker MCP Gateway)
 
+### Architecture
+
+Core gateway (always present, ~6 tools, ~4k tokens):
+- mcp-find, mcp-add, mcp-remove, mcp-config-set, mcp-exec, code-mode
+
+Server management (via Bash, persists to gateway):
+- `docker mcp server enable [name]` - adds server and tools
+- `docker mcp server disable [name]` - removes server and tools
+- `docker mcp server reset` - nuclear option, back to 6 core tools
+- `docker mcp tools count` - check current tool count
+
+After enable/disable: user needs /clear for Claude to see changes.
+
 ### Philosophy
-- **Zero always-on servers**: Start each session with a clean context window
-- **Human-in-the-loop**: Always ask before adding MCP servers
-- **Session-aware cleanup**: Track what's added, clean up at session end
 
-### Session Lifecycle
+- Clean slate: start sessions with only 6 core tools
+- Human-in-the-loop: ask before adding servers
+- Session-aware: track what's added, clean up at end
 
-#### At Session Start
-Ask the user: "Which MCP servers might you need this session?"
-- Offer to run `mcp-find` to help discover available servers
-- Record their preferences in `.claude/session-context.md` under "## MCP Servers for This Session"
-- Do NOT add servers yet - just note what may be needed
+### Workflow
 
-#### During Session
-When a task would benefit from an MCP server:
-1. Check if it's on the user's session list
-2. Ask: "I could add [server-name] to help with [task]. Should I?"
-3. If approved, use `mcp-add` to add the server
-4. Update `.claude/session-context.md` under "## MCP Servers Added This Session"
+At session start (`/session-start`):
+- Check tool count (should be 6)
+- Ask which servers needed
+- Enable via: `docker mcp server enable [name]`
+- User runs /clear to load new tools
 
-#### At Session End
-When user runs `/session-end`:
-1. Update session-context.md with session summary
-2. List all MCP servers added during the session
-3. Use `mcp-remove` for each server added
-4. Offer `/clear` to start fresh
+During session:
+- "I could add [server] for [task]. Should I?"
+- If yes: enable via Bash, user /clear, log in session-context.md
 
-### MCP Tools Available
-- `mcp-find`: Search for servers by keyword (e.g., `mcp-find github`)
-- `mcp-add`: Add a server mid-session (tools become available immediately)
-- `mcp-remove`: Remove a server (clean up at session end)
+At session end (`/session-end`):
+- Disable each server via: `docker mcp server disable [name]`
+- Verify tool count returns to 6
+- If stuck: `docker mcp server reset`
 
-### Asking Before Adding
-Always phrase requests as options:
-- "I could add the Context7 server to get up-to-date docs for this library. Should I?"
-- "The GitHub MCP server would help with this PR review. Want me to add it?"
-- "This task involves database queries - the postgres server could help. Add it?"
+### Phrasing
+
+- "I could add Context7 for up-to-date docs. Should I?"
+- "GitHub MCP would help with this PR. Add it?"
+- "This needs database access - add postgres?"
 ```
 
-### 4. Initialize Session Context Structure
-Add the following template to `.claude/session-context.md`:
+4. Initialize session-context.md:
 
 ```markdown
 # Session Context
 
 ## Current Focus
-[What are we working on?]
 
-## Key Decisions Made
-- [Decision 1]
+[TBD]
 
 ## MCP Servers for This Session
-[Servers the user indicated might be useful - not yet added]
+
+[Not yet added - just planned]
 
 ## MCP Servers Added This Session
-[Servers actually added via mcp-add, with reason]
-| Server | Added For | Status |
-|--------|-----------|--------|
-| (none yet) | | |
+
+| Server | Tools | Status |
+|--------|-------|--------|
+
+## Key Decisions
+
+-
 
 ## Notes
-[Any other session-specific context]
+
+-
 ```
 
-## Notes
-- The `.claude/session-context.md` file tracks session-specific context AND MCP server usage
-- The `.claude/session.md` file is for session notes and findings
-- The `.claude/todo.md` file is for project task tracking
-- Use `/session-context` to update the session context file during work
-- Use `/session-start` to begin a new session with MCP server selection
-- Use `/session-end` to wrap up, clean up MCP servers, and optionally clear context
+## Reference
+
+Files created:
+- `.claude/session-context.md` - session context + MCP tracking
+- `.claude/session.md` - session notes
+- `.claude/todo.md` - task tracking
+
+Commands:
+- `/session-start` - begin with MCP selection, enable servers
+- `/session-context` - update context mid-session
+- `/session-end` - disable servers, verify cleanup
