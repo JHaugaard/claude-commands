@@ -4,6 +4,10 @@ description: "Begin new session with MCP server selection and context setup"
 
 Begin new session with MCP server selection and context setup.
 
+## Memory Integration
+
+Read user preferences from `~/.claude/rules/mcp-preferences.md` to offer personalized defaults.
+
 ## Steps
 
 1. Check current MCP state:
@@ -12,7 +16,21 @@ Begin new session with MCP server selection and context setup.
 
 2. Ask: "What are we working on this session?"
 
-3. Ask: "Which MCP servers do you need? I can search the catalog."
+3. Load MCP preferences:
+   - Read `~/.claude/rules/mcp-preferences.md`
+   - Check "Default Servers" table for user's preferred servers
+   - Check "Tool Subsets" for preferred tool configurations
+
+4. Offer server selection based on preferences:
+
+   **If defaults exist:**
+   "Your default servers are: [list from preferences]
+   - Load defaults?
+   - Customize for this session?
+   - Start fresh (no servers)?"
+
+   **If no defaults yet:**
+   "Which MCP servers do you need? I can search the catalog."
    - If user wants to browse, use `mcp-find`:
      - Docs: `mcp-find context7`
      - Search: `mcp-find perplexity`, `mcp-find search`
@@ -21,12 +39,16 @@ Begin new session with MCP server selection and context setup.
      - Reasoning: `mcp-find sequential`
      - Conversion: `mcp-find markdown`
 
-4. For each server the user wants:
+5. For each server the user wants:
    - Run via Bash: `docker mcp server enable [name]`
+   - If user has tool subset preferences (from mcp-preferences.md), apply them:
+     ```bash
+     docker mcp tools disable [tools-to-disable]
+     ```
    - Verify: `docker mcp tools count`
    - Note: User must /clear or start new session for tools to appear in Claude
 
-5. Update .claude/session-context.md:
+6. Update .claude/session-context.md:
 
 ```markdown
 # Session Context
@@ -49,7 +71,7 @@ Begin new session with MCP server selection and context setup.
 - Session started: [timestamp]
 ```
 
-6. Instruct user:
+7. Instruct user:
    - "Servers enabled. Run /clear to load the new tools, then we can begin."
    - After /clear, summarize focus and active servers
    - Remind: "Run /session-end when done to clean up."
