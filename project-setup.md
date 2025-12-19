@@ -1,10 +1,12 @@
 Initialize project with Claude Code config, MCP workflow integration, and environment setup.
 
+Uses **conditional rules** for context efficiency - MCP and API key docs only load when relevant.
+
 ## Steps
 
 1. Create structure:
    ```bash
-   mkdir -p .claude
+   mkdir -p .claude/rules
    touch .claude/session-context.md .claude/session.md .claude/todo.md
    ```
 
@@ -17,9 +19,6 @@ Initialize project with Claude Code config, MCP workflow integration, and enviro
 .env
 .env.local
 .env.*.local
-.env.development.local
-.env.test.local
-.env.production.local
 *.pem
 *.key
 
@@ -63,39 +62,114 @@ temp/
 .cache/
 ```
 
-3. Create `.env.local` template for API keys:
+3. Create `.env.local` template:
 
 ```env
 # =============================================================================
 # LOCAL ENVIRONMENT VARIABLES - DO NOT COMMIT
 # =============================================================================
-# This file contains API keys and secrets for local development.
-# Fill in your actual keys below.
-# =============================================================================
 
-# -----------------------------------------------------------------------------
 # LLM API Keys
-# -----------------------------------------------------------------------------
-
-# Google Gemini API
 GEMINI_API_KEY=
-
-# OpenAI API
 OPENAI_API_KEY=
-
-# OpenRouter API (access to multiple models)
 OPENROUTER_API_KEY=
 
-# -----------------------------------------------------------------------------
-# Project-Specific Keys
-# -----------------------------------------------------------------------------
-# Add additional API keys as needed for this project
-
+# Project-Specific Keys (add as needed)
 ```
 
-4. Run `/init` to generate base CLAUDE.md
+4. Create `.claude/rules/mcp-workflow.md`:
 
-5. Append to CLAUDE.md:
+```markdown
+---
+paths:
+  - ".claude/session-context.md"
+  - ".claude/session.md"
+---
+# MCP Server Workflow
+
+## Available Servers (Quick Reference)
+| Server | Purpose | Tools |
+|--------|---------|-------|
+| context7 | Up-to-date library documentation | 3 |
+| zen | Code analysis, debugging, review | 18 |
+| github | PR/issue management | 12 |
+| postgres | Database queries | 8 |
+| filesystem | File operations | 6 |
+
+Use `mcp-find [query]` to discover additional servers.
+
+## Commands
+| Command | Purpose |
+|---------|---------|
+| `docker mcp server enable [name]` | Add server and tools |
+| `docker mcp server disable [name]` | Remove server |
+| `docker mcp server reset` | Return to 6 core tools |
+| `docker mcp tools disable [tool1] ...` | Disable specific tools |
+| `docker mcp tools count` | Check current tool count |
+
+After enable/disable: user runs `/clear` to reload.
+
+## Session Protocol
+
+**Start:** Check tool count (should be 6) → Ask which servers → Enable → User /clear
+
+**During:** Offer servers as needed → Log in session-context.md with description
+
+**End:** Disable each server → Verify count returns to 6
+
+## Phrasing
+- "Context7 would help with up-to-date docs. Add it?"
+- "Zen adds 18 tools. Want all, or just analyze/debug/codereview?"
+```
+
+5. Create `.claude/rules/api-keys.md`:
+
+```markdown
+---
+paths:
+  - ".env*"
+  - "*.env"
+---
+# API Keys Reference
+
+Keys stored in `.env.local` (gitignored). Never commit secrets.
+
+## Available Keys
+| Variable | Service | Usage |
+|----------|---------|-------|
+| `GEMINI_API_KEY` | Google Gemini | Gemini models |
+| `OPENAI_API_KEY` | OpenAI | GPT models, embeddings |
+| `OPENROUTER_API_KEY` | OpenRouter | Multi-model access |
+
+## Loading in Code
+
+```bash
+# Shell
+source .env.local
+```
+
+```python
+# Python
+from dotenv import load_dotenv
+load_dotenv('.env.local')
+```
+
+```javascript
+// Node.js
+require('dotenv').config({ path: '.env.local' })
+```
+
+## Docker MCP Secrets
+```bash
+# Sync to MCP if needed
+source .env.local
+docker mcp secret set zen.openai_api_key=$OPENAI_API_KEY
+```
+```
+
+6. Run `/init` to generate base CLAUDE.md
+
+7. Append to CLAUDE.md:
 
 ```markdown
 # Project Name
@@ -103,200 +177,86 @@ OPENROUTER_API_KEY=
 
 ## Workflow
 This project uses the skill-foundry workflow system.
-**Manifest:** `.claude/workflow-manifest.yaml`
-**Status:** Invoke `workflow-status` skill to check progress
-**Handoffs:** `.docs/` directory
-
-## Getting Started
-1. **Start the workflow:** Invoke the `project-brief-writer` skill to begin
-2. **Check progress:** Use `workflow-status` skill at any time to see where you are
-3. **Continue:** Follow the recommended next steps after each skill completes
+- **Status:** Invoke `workflow-status` skill
+- **Handoffs:** `.docs/` directory
 
 ## Quick Reference
 | Skill                | Purpose                                     |
 | -------------------- | ------------------------------------------- |
-| project-brief-writer | Transform your idea into a structured brief |
+| project-brief-writer | Transform idea into structured brief        |
 | solution-architect   | Resolve architectural ambiguity (optional)  |
-| tech-stack-advisor   | Get technology stack recommendations        |
-| deployment-advisor   | Plan your hosting and deployment strategy   |
-| project-spinup       | Generate project foundation and structure   |
-| test-orchestrator    | Set up testing infrastructure (optional)    |
-| deploy-guide         | Walk through actual deployment steps        |
-| ci-cd-implement      | Set up CI/CD automation (optional)          |
+| tech-stack-advisor   | Get technology recommendations              |
+| deployment-advisor   | Plan hosting and deployment                 |
+| project-spinup       | Generate project foundation                 |
+| test-orchestrator    | Set up testing (optional)                   |
+| deploy-guide         | Walk through deployment                     |
+| ci-cd-implement      | Set up CI/CD (optional)                     |
 
 ## Project-Specific Notes
+<!-- Populated by project-spinup -->
 
-<!-- This section will be populated by project-spinup skill as part of the workflow -->
 ---
-## External Resources
 
+## External Resources
 - Shared assets: [placeholder]
 - Design files: [placeholder]
 
 ## Skill Location
-
 Personal skills at: /Users/john/.claude/skills
-
-## Environment & API Keys
-
-API keys for external services are stored in `.env.local` at the project root. This file is gitignored and should never be committed.
-
-**IMPORTANT:** When tasks require calling external LLM APIs (via Docker MCP Toolkit or directly), always read credentials from `.env.local`. Do not prompt for keys or guess at environment variable names.
-
-### Available Keys
-
-| Variable | Service | Usage |
-|----------|---------|-------|
-| `GEMINI_API_KEY` | Google Gemini | Gemini model API access |
-| `OPENAI_API_KEY` | OpenAI | GPT models, embeddings |
-| `OPENROUTER_API_KEY` | OpenRouter | Multi-model access |
-
-### Loading Keys
-
-```bash
-# In shell scripts
-source .env.local
-
-# Or export individually
-export $(grep -v '^#' .env.local | xargs)
 ```
 
-```python
-# In Python
-from dotenv import load_dotenv
-load_dotenv('.env.local')
-```
-
-```javascript
-// In Node.js (with dotenv)
-require('dotenv').config({ path: '.env.local' })
-```
-
-### Docker MCP Toolkit Secrets
-
-The Docker MCP Toolkit stores secrets separately via `docker mcp secret set`.
-View current secrets: `docker mcp secret ls`
-
-To sync a key from .env.local to MCP (if needed):
-```bash
-source .env.local
-docker mcp secret set zen.openai_api_key=$OPENAI_API_KEY
-```
-
-## MCP Server Workflow (Docker MCP Gateway)
-
-### Architecture
-
-Core gateway (always present, ~6 tools):
-- mcp-find, mcp-add, mcp-remove, mcp-config-set, mcp-exec, code-mode
-
-Server management (via Bash, persists to gateway):
-- `docker mcp server enable [name]` - adds server and tools
-- `docker mcp server disable [name]` - removes server and tools
-- `docker mcp server reset` - nuclear option, back to 6 core tools
-- `docker mcp tools count` - check current tool count
-
-Tool-level control (granular):
-- `docker mcp tools ls` - list all tools
-- `docker mcp tools disable [tool1] [tool2] ...` - disable specific tools
-- `docker mcp tools enable [tool1] [tool2] ...` - re-enable specific tools
-
-After enable/disable: user needs /clear for Claude to see changes.
-
-### Philosophy
-
-- Clean slate: start sessions with only 6 core tools
-- Human-in-the-loop: ask before adding servers
-- Session-aware: track what's added, clean up at end
-- Granular control: disable unwanted tools from verbose servers
-
-### Workflow
-
-At session start (`/session-start`):
-- Check tool count (should be 6)
-- Ask which servers needed
-- Enable via: `docker mcp server enable [name]`
-- If server has many tools, ask: "Want all tools or a subset?"
-- Disable unwanted tools: `docker mcp tools disable [tool1] ...`
-- User runs /clear to load new tools
-
-During session:
-- "I could add [server] for [task]. Should I?"
-- If yes: enable via Bash, user /clear, log in session-context.md
-
-At session end (`/session-end`):
-- Disable each server via: `docker mcp server disable [name]`
-- Verify tool count returns to 6
-- If stuck: `docker mcp server reset`
-
-### Phrasing
-
-- "I could add Context7 for up-to-date docs. Should I?"
-- "GitHub MCP would help with this PR. Add it?"
-- "This needs database access - add postgres?"
-- "Zen adds 18 tools. Want all, or just analyze/debug/codereview?"
-```
-
-6. Initialize session-context.md:
+8. Initialize session-context.md:
 
 ```markdown
 # Session Context
 
 ## Current Focus
-
 [TBD]
 
-## MCP Servers for This Session
-
-[Not yet added - just planned]
-
 ## MCP Servers Added This Session
-
 | Server | Tools | Status |
 |--------|-------|--------|
 
 ## Key Decisions
-
 -
 
 ## Notes
-
 -
 ```
 
-7. Wrap-up reminders:
+9. Wrap-up:
 
 Tell user:
 ```
-Project initialized! A few things to remember:
+Project initialized with context-efficient structure!
+
+**What's different:**
+- Lean CLAUDE.md (~50 lines vs ~140)
+- MCP docs in `.claude/rules/mcp-workflow.md` - loads only during session ops
+- API docs in `.claude/rules/api-keys.md` - loads only when touching .env files
 
 **API Keys:**
-- `.env.local` was created with placeholders
-- Add your API keys now, or they'll be needed when you use MCP tools
-- Keys are gitignored - safe to add real values
-
-**MCP Tool Control (your new superpower):**
-- Server-level: `docker mcp server enable/disable [name]`
-- Tool-level: `docker mcp tools enable/disable [tool1] [tool2] ...`
-- This lets you enable Zen but disable 14 of its 18 tools if you only need a few
+- Add your keys to `.env.local`
+- Gitignored - safe to add real values
 
 **Next steps:**
 1. Add API keys to `.env.local`
-2. Run `/session-start` to begin working
-3. Run `/session-end` when done to clean up
+2. Run `/session-start` to begin
+3. Run `/session-end` when done
 ```
 
 ## Reference
 
 Files created:
-- `.gitignore` - best-practices ignore patterns
+- `.gitignore` - ignore patterns
 - `.env.local` - API key template (gitignored)
-- `.claude/session-context.md` - session context + MCP tracking
+- `.claude/rules/mcp-workflow.md` - MCP docs (conditional)
+- `.claude/rules/api-keys.md` - API docs (conditional)
+- `.claude/session-context.md` - session tracking
 - `.claude/session.md` - session notes
 - `.claude/todo.md` - task tracking
-- `CLAUDE.md` - project instructions (via /init + appended sections)
+- `CLAUDE.md` - core project instructions (lean)
 
 Commands:
-- `/session-start` - begin with MCP selection, enable servers
-- `/session-context` - update context mid-session
-- `/session-end` - disable servers, verify cleanup
+- `/session-start` - begin with MCP selection
+- `/session-end` - cleanup servers
