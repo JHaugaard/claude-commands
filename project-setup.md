@@ -11,8 +11,10 @@ For faster initialization, create independent files in parallel:
 - touch .claude/session-context.md .claude/session.md .claude/todo.md .claude/project-learnings.md
 - Write .gitignore
 
-**Group 2 (environment):**
+**Group 2 (environment + secret protection):**
 - Write .env.local template
+- Write .env.example (committed, documents required keys)
+- Write .pre-commit-config.yaml (gitleaks hook)
 
 **Group 3 (symlinks to user-level rules):**
 - Symlink .claude/rules/mcp-workflow.md -> ~/.claude/rules/mcp-workflow.md
@@ -38,8 +40,8 @@ touch .claude/session-context.md .claude/session.md .claude/todo.md .claude/proj
 ```
 Then write `.gitignore` (content below) and initialize `.claude/project-learnings.md` (template below)
 
-**Agent 2 (environment):**
-Write `.env.local` template (content below)
+**Agent 2 (environment + secret protection):**
+Write `.env.local` template, `.env.example`, and `.pre-commit-config.yaml` (content below)
 
 **Agent 3 (symlinks to user-level rules):**
 Create symlinks to shared rule files:
@@ -113,12 +115,13 @@ temp/
 .cache/
 ```
 
-### .env.local
+### .env.example (committed)
 
 ```env
 # =============================================================================
-# LOCAL ENVIRONMENT VARIABLES - DO NOT COMMIT
+# ENVIRONMENT VARIABLES TEMPLATE
 # =============================================================================
+# Copy to .env.local and fill in values. Never commit real secrets.
 
 # LLM API Keys
 GEMINI_API_KEY=
@@ -126,6 +129,44 @@ OPENAI_API_KEY=
 OPENROUTER_API_KEY=
 
 # Project-Specific Keys (add as needed)
+```
+
+### .env.local (gitignored)
+
+```env
+# =============================================================================
+# LOCAL ENVIRONMENT VARIABLES - DO NOT COMMIT
+# =============================================================================
+# Copy from .env.example and add your real values here.
+
+# LLM API Keys
+GEMINI_API_KEY=
+OPENAI_API_KEY=
+OPENROUTER_API_KEY=
+
+# Project-Specific Keys (add as needed)
+```
+
+### .pre-commit-config.yaml
+
+```yaml
+# Secret protection hooks - run `pre-commit install` after cloning
+repos:
+  # Block .env files from being committed (except .env.example)
+  - repo: local
+    hooks:
+      - id: block-env-files
+        name: Block .env files
+        entry: bash -c 'for f in "$@"; do case "$f" in .env.example) ;; .env*) echo "Blocked: $f - use .env.example for templates"; exit 1;; esac; done' --
+        language: system
+        files: '^\.env'
+        stages: [pre-commit]
+
+  # Scan for leaked secrets using gitleaks
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.4
+    hooks:
+      - id: gitleaks
 ```
 
 ### .claude/rules/ (symlinks)
@@ -227,6 +268,7 @@ Project initialized with context-efficient structure!
 - Lean CLAUDE.md (~50 lines vs ~140)
 - Rules symlinked from ~/.claude/rules/ (shared across all projects)
 - Conditional loading: MCP docs load during session ops, API docs when touching .env
+- Secret protection via pre-commit hooks (gitleaks + .env blocker)
 
 **Memory structure:**
 - .claude/session-context.md - Ephemeral (reset each session)
@@ -236,19 +278,22 @@ Project initialized with context-efficient structure!
 - .claude/rules/mcp-workflow.md -> ~/.claude/rules/mcp-workflow.md
 - .claude/rules/api-keys.md -> ~/.claude/rules/api-keys.md
 
+**Secret protection:**
+- `.env.example` - Committed template (keys only, no values)
+- `.env.local` - Your real secrets (gitignored)
+- `.pre-commit-config.yaml` - Blocks .env files + scans for leaked secrets
+
 **Benefits:**
 - Update user-level rules once, applies everywhere
 - Your MCP preferences in ~/.claude/rules/mcp-preferences.md
 - Session learnings can be persisted to project memory via /session-end
-
-**API Keys:**
-- Add your keys to `.env.local`
-- Gitignored - safe to add real values
+- Pre-commit hooks physically prevent accidental secret commits
 
 **Next steps:**
-1. Add API keys to `.env.local`
-2. Run `/session-start` to begin
-3. Run `/session-end` when done (offers to save learnings)
+1. Run `pre-commit install` to activate hooks
+2. Copy `.env.example` to `.env.local` and add your keys
+3. Run `/session-start` to begin
+4. Run `/session-end` when done (offers to save learnings)
 ```
 
 ---
@@ -257,7 +302,9 @@ Project initialized with context-efficient structure!
 
 Files created:
 - `.gitignore` - ignore patterns
-- `.env.local` - API key template (gitignored)
+- `.env.example` - environment template (committed, keys only)
+- `.env.local` - real secrets (gitignored)
+- `.pre-commit-config.yaml` - secret protection hooks
 - `.claude/rules/mcp-workflow.md` - symlink to user-level MCP docs
 - `.claude/rules/api-keys.md` - symlink to user-level API docs
 - `.claude/session-context.md` - session tracking (ephemeral, per-session)
@@ -274,3 +321,6 @@ User-level rules (at ~/.claude/rules/):
 Commands:
 - `/session-start` - begin with MCP selection
 - `/session-end` - cleanup servers
+
+Prerequisites:
+- `pre-commit` - install via `pip install pre-commit` or `brew install pre-commit`
