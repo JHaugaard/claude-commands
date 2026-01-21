@@ -21,8 +21,7 @@ For faster initialization, create independent files in parallel:
 - Symlink .claude/rules/api-keys.md -> ~/.claude/rules/api-keys.md
 
 Launch Groups 1-3 as parallel agents, then:
-- Run /init (depends on directory structure)
-- Append to CLAUDE.md (depends on /init)
+- Check if CLAUDE.md exists (for wrap-up reporting)
 - Initialize session-context.md content
 
 Collect all results with TaskOutput before wrap-up message.
@@ -54,10 +53,9 @@ ln -s ~/.claude/rules/api-keys.md .claude/rules/api-keys.md
 
 Collect results from all agents, then:
 
-1. Run `/init` to generate base CLAUDE.md
-2. Append workflow section to CLAUDE.md
-3. Initialize session-context.md with template content
-4. Display wrap-up message
+1. Check if CLAUDE.md exists in project root
+2. Initialize session-context.md with template content
+3. Display wrap-up message (include CLAUDE.md guidance)
 
 ---
 
@@ -188,44 +186,6 @@ ln -s ~/.claude/rules/api-keys.md .claude/rules/api-keys.md
 - `~/.claude/rules/api-keys.md` - API key documentation
 - `~/.claude/rules/mcp-preferences.md` - Personal server defaults
 
-### CLAUDE.md Append Section
-
-After running `/init`, append this to CLAUDE.md:
-
-```markdown
-# Project Name
-<!-- Replace with your project name and description -->
-
-## Workflow
-This project uses the skill-foundry workflow system.
-- **Status:** Invoke `workflow-status` skill
-- **Handoffs:** `.docs/` directory
-
-## Quick Reference
-| Skill                | Purpose                                     |
-| -------------------- | ------------------------------------------- |
-| project-brief-writer | Transform idea into structured brief        |
-| solution-architect   | Resolve architectural ambiguity (optional)  |
-| tech-stack-advisor   | Get technology recommendations              |
-| deployment-advisor   | Plan hosting and deployment                 |
-| project-spinup       | Generate project foundation                 |
-| test-orchestrator    | Set up testing (optional)                   |
-| deploy-guide         | Walk through deployment                     |
-| ci-cd-implement      | Set up CI/CD (optional)                     |
-
-## Project-Specific Notes
-<!-- Populated by project-spinup -->
-
----
-
-## External Resources
-- Shared assets: [placeholder]
-- Design files: [placeholder]
-
-## Skill Location
-Personal skills at: /Users/john/.claude/skills
-```
-
 ### session-context.md Template
 
 ```markdown
@@ -265,7 +225,6 @@ After all files are created, tell user:
 Project initialized with context-efficient structure!
 
 **What's different:**
-- Lean CLAUDE.md (~50 lines vs ~140)
 - Rules symlinked from ~/.claude/rules/ (shared across all projects)
 - Conditional loading: MCP docs load during session ops, API docs when touching .env
 - Secret protection via pre-commit hooks (gitleaks + .env blocker)
@@ -289,6 +248,10 @@ Project initialized with context-efficient structure!
 - Session learnings can be persisted to project memory via /session-end
 - Pre-commit hooks physically prevent accidental secret commits
 
+**CLAUDE.md:**
+[IF CLAUDE.md EXISTS] CLAUDE.md was found in the project; invoke /claude-template to update it.
+[IF NO CLAUDE.md] Invoke /claude-template to create CLAUDE.md
+
 **Next steps:**
 1. Run `pre-commit install` to activate hooks
 2. Copy `.env.example` to `.env.local` and add your keys
@@ -311,7 +274,6 @@ Files created:
 - `.claude/project-learnings.md` - persistent project memory (accumulates)
 - `.claude/session.md` - session notes
 - `.claude/todo.md` - task tracking
-- `CLAUDE.md` - core project instructions (lean)
 
 User-level rules (at ~/.claude/rules/):
 - `mcp-workflow.md` - MCP server reference (conditional)
