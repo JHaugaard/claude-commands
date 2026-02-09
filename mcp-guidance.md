@@ -1,6 +1,6 @@
 # MCP Server Workflow Reference
 
-Standalone reference for the Docker MCP Gateway workflow. This content is also embedded in project CLAUDE.md files via `/project-setup`.
+Standalone reference for the MCP gateway workflow. This content is also embedded in project CLAUDE.md files via `/project-setup`.
 
 ## Copy This to CLAUDE.md
 
@@ -8,7 +8,7 @@ The following section should be added to your project's CLAUDE.md file:
 
 ---
 
-## MCP Server Workflow (Docker MCP Gateway)
+## MCP Server Workflow
 
 ### Philosophy
 

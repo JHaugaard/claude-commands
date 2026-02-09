@@ -4,14 +4,9 @@ description: "Wrap up session: update context, clean up MCP servers, optionally 
 
 Wrap up session: update context, clean up MCP servers, optionally clear.
 
-## Memory Integration
-
-- Can update `~/.claude/rules/mcp-preferences.md` to save server preferences for future sessions.
-- Can persist valuable learnings to `.claude/project-learnings.md` for future sessions in this project.
-
 ## Steps
 
-1. Read .claude/session-context.md for:
+1. Read `.claude/session-context.md` for:
    - Session focus
    - Servers added (from table)
    - Key decisions and notes
@@ -35,27 +30,20 @@ Wrap up session: update context, clean up MCP servers, optionally clear.
    - If different, ask: "Save this server combination as your default?"
      - **Yes**: Update "Default Servers" table in mcp-preferences.md
      - **No**: Continue without saving
-   - If user customized tool subsets, ask: "Save these tool preferences?"
 
 5. MCP cleanup - for each server in "Added" table:
-   - Run via Bash: `docker mcp server disable [name]`
+   - Use `mcp-remove` to remove the server
    - Update table status to "removed"
 
-6. Verify cleanup:
-   - Run: `docker mcp tools count` (via Bash)
-   - Should show 6 tools (core gateway only)
-   - If more remain: `docker mcp server reset`
-
-7. Update session-context.md:
+6. Update session-context.md:
    ```markdown
    ## Session Status
    Completed: [timestamp]
    Servers cleaned: [list]
-   Tool count: 6 (clean slate)
    ```
 
-8. Offer next steps:
-   - Continue: keep working (tools already removed from gateway)
+7. Offer next steps:
+   - Continue: keep working (servers already removed)
    - Clear: run /clear for fresh context
    - New session: /clear then /session-start
 
@@ -65,10 +53,6 @@ No servers added:
 - Skip cleanup, note "No MCP servers to clean up"
 
 User wants to keep a server:
-- Don't disable it
+- Don't remove it
 - Note in session-context.md that it remains active
 - Warn: "This server will persist to next session"
-
-Reset needed:
-- If individual disables fail, use: `docker mcp server reset`
-- This guarantees return to 6 core tools
